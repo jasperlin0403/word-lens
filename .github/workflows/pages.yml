@@ -1,0 +1,40 @@
+# 網頁版自動發布：把 word-lens-site.zip 解壓縮後發布到 GitHub Pages
+# 更新網頁版：上傳新的 word-lens-site.zip 覆蓋舊檔即可
+name: 發布網頁版
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: 檢查網站壓縮檔
+        id: check
+        run: |
+          if [ -f word-lens-site.zip ]; then echo "found=true" >> "$GITHUB_OUTPUT"; else echo "找不到 word-lens-site.zip，略過發布"; echo "found=false" >> "$GITHUB_OUTPUT"; fi
+      - name: 解壓縮
+        if: steps.check.outputs.found == 'true'
+        run: |
+          unzip -q word-lens-site.zip -d unzipped
+          mv unzipped/word-lens _site
+      - if: steps.check.outputs.found == 'true'
+        uses: actions/configure-pages@v5
+      - if: steps.check.outputs.found == 'true'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+      - if: steps.check.outputs.found == 'true'
+        id: deployment
+        uses: actions/deploy-pages@v4
